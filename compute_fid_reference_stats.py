@@ -50,7 +50,8 @@ def get_preprocess_fn(ds_name: str) -> Callable[[np.ndarray], tf.Tensor]:
     return process_ds
 
 
-def compute_fid_reference_stats(batch_size: int):
+def compute_fid_reference_stats(argv):
+    batch_size = FLAGS.batch_size
     logger = logging.getLogger()
     logger.setLevel("INFO")
     # load pretrained inceptionv3 model and setup jitted function
