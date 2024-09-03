@@ -10,5 +10,6 @@ def get_female_config(config):
     config.data.eval_labels = [15, 17, 35]
 
     config.eval.labelwise = True
+    config.eval.eval_samples = 50000
 
     return config
