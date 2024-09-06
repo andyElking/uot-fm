@@ -136,8 +136,13 @@ class MetricComputer:
                     )
                 else:
                     inputs = jnp.concatenate([inputs, src_batch[: int(2400 - inputs.shape[0])] * 0.5 + 0.5])
+
+            # Key used in the evaluation process
+            eval_key, key = jr.split(key, 2)
+            eval_keys = jr.split(eval_key, self.batch_size)
+
             # sample from model
-            sample_batch, nfe = jax.vmap(partial_sample_fn)(src_batch)
+            sample_batch, nfe = jax.vmap(partial_sample_fn, in_axes=(0, 0), out_axes=0)(src_batch, eval_keys)
             nfes.append(nfe)
             if self.enable_path_lengths:
                 # compute euclidean distance between samples and inputs
@@ -165,7 +170,11 @@ class MetricComputer:
                     if label == 201:
                         labels_indices[idx].append((src_label[:, 20] == -1))
                     else:
-                        labels_indices[idx].append((src_label[:, label] == 1.0))
+                        try:
+                            labels_indices[idx].append((src_label[:, label] == 1.0))
+                        except UnboundLocalError:
+                            print(f"src_label.shape: {src_label.shape}, label: {label}")
+                            raise UnboundLocalError
         eval_dict["nfe"] = jnp.mean(jnp.hstack(nfes))
         if self.enable_mse:
             eval_dict["mse"] = jnp.mean(jnp.hstack(mses))

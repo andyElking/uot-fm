@@ -1,3 +1,4 @@
+import math
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import diffrax as dfx
@@ -6,6 +7,7 @@ import functools as ft
 import jax
 import jax.numpy as jnp
 import jax.random as jr
+from jaxtyping import ArrayLike
 from ml_collections import ConfigDict
 import optax
 
@@ -19,6 +21,7 @@ def get_loss_builder(config: ConfigDict):
             gamma=config.training.gamma,
             weight=lambda t: 1.0,
             solver=config.solver,
+            noisy_config=config.noisy,
         )
     elif config.training.method == "flow-vp-matching":
         raise NotImplementedError
@@ -102,6 +105,7 @@ class FlowMatching:
         flow_sigma: Optional[float] = 0.1,
         weight: Optional[Callable[[float], float]] = lambda t: 1.0,
         solver: str = "tsit5",
+        noisy_config: Optional[ConfigDict] = None
     ):
         self.t1 = t1
         self.t0 = t0
@@ -110,6 +114,18 @@ class FlowMatching:
         self.sigma = flow_sigma
         self.weight = weight
         self.solver = solver
+        self.noisy_config = noisy_config
+        if noisy_config.enable:
+            assert t0 == 0.0 and t1 == 1.0, \
+                "noisy_config evaluation only supports t0=0 and t1=1."
+            s = noisy_config.s
+            t = noisy_config.t
+            if s >= t or s < 0:
+                raise ValueError(f"s={s} must be less than t={t}"
+                                 f"and greater than 0.")
+            self.sigma_s_t = get_sigma_s_t(s, t, flow_sigma)
+        else:
+            self.sigma_s_t = 0.0
 
     @staticmethod
     def compute_flow(x1: jax.Array, x0: jax.Array) -> jax.Array:
@@ -188,7 +204,7 @@ class FlowMatching:
         """Get single sample function."""
 
         @eqx.filter_jit
-        def single_sample_fn(model: eqx.Module, x0: jax.Array) -> jax.Array:
+        def single_sample_fn(model: eqx.Module, x0: jax.Array, key: jax.Array) -> tuple[jax.Array, ArrayLike]:
             """Produce single sample from the CNF by integrating forward."""
 
             def func(t, x, args):
@@ -204,20 +220,51 @@ class FlowMatching:
             else:
                 raise ValueError(f"Unknown solver {self.solver}")
             if self.dt0 == 0.0:
-                stepsize_controller = dfx.PIDController(rtol=1e-5, atol=1e-5)
+                stepsize_controller = dfx.PIDController(rtol=0, atol=1e-4)
                 dt0 = None
             else:
                 stepsize_controller = dfx.ConstantStepSize()
                 dt0 = self.dt0
+
+            noisy = self.noisy_config
+            if noisy.enable:
+                s = noisy.s
+                t = noisy.t
+                # We integrate up to t
+                sol_partial = dfx.diffeqsolve(
+                    term,
+                    solver,
+                    self.t0,
+                    t,
+                    dt0,
+                    x0,
+                    stepsize_controller=stepsize_controller,
+                )
+                x0 = sol_partial.ys[0]
+                steps = sol_partial.stats["num_steps"]
+
+                # Then by adding noise we go backwards to time s
+                z = jr.normal(key, shape=x0.shape)
+                x0 = s/t * x0 + self.sigma_s_t * z
+            else:
+                s = self.t0
+                steps = 0
+
             sol = dfx.diffeqsolve(
                 term,
                 solver,
-                self.t0,
+                s,
                 self.t1,
                 dt0,
                 x0,
                 stepsize_controller=stepsize_controller,
             )
-            return sol.ys[0], sol.stats["num_steps"]
+            return sol.ys[0], steps + sol.stats["num_steps"]
 
         return single_sample_fn
+
+
+def get_sigma_s_t(s: float, t: float, sigma_1) -> float:
+    s_by_t = s / t
+    sigma2 = 1 - s_by_t ** 2 + 2 * (1 - sigma_1) * s * (s_by_t - 1)
+    return math.sqrt(sigma2)

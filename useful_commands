@@ -1,0 +1,5 @@
+python main.py --config=configs/celeba64/female/fm.py --config.task="generation" --config.name="fm_celeba64_fem_gen"
+
+--config=configs/celeba64/female/fm.py --config.name="fm_celeba64_fem_gen"
+
+python main.py --config=configs/cifar10/fm.py --config.noisy.enable=False

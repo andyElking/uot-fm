@@ -28,4 +28,9 @@ def get_base_config():
     eval.labelwise = True
     eval.checkpoint_step = 0
 
+    config.noisy = noisy = ml_collections.ConfigDict()
+    noisy.enable = True
+    noisy.t = 1.0
+    noisy.s = 0.8
+
     return config
