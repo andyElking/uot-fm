@@ -1,3 +1,5 @@
+import os
+
 import equinox as eqx
 import jax
 import jax.experimental.mesh_utils as mesh_utils
@@ -46,8 +48,10 @@ def evaluate(config: ml_collections.ConfigDict, workdir: str):
     mngr_options = obx.CheckpointManagerOptions(
         create=True, max_to_keep=3, best_fn=lambda metric: metric, best_mode="min"
     )
+    cwd = os.getcwd()
+    full_workdir = os.path.join(cwd, workdir)
     ckpt_mngr = obx.CheckpointManager(
-        directory=f"{workdir}/{config.name}/checkpoints",
+        directory=f"{full_workdir}/{config.name}/checkpoints",
         checkpointers=obx.Checkpointer(obx.PyTreeCheckpointHandler()),
         options=mngr_options,
     )
@@ -73,8 +77,8 @@ def evaluate(config: ml_collections.ConfigDict, workdir: str):
     wandb.login(key=config.wandb_key)
     wandb.init(
         project="uot-fm",
-        group=config.wandb_group,
-        entity=config.wandb_entity,
+        group=config.wandb_group if config.wandb_group != "" else None,
+        entity=config.wandb_entity if config.wandb_entity != "" else None,
         name=f"eval_{config.name}",
         config=config,
     )

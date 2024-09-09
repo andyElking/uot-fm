@@ -4,6 +4,7 @@ import blobfile as bf
 from ml_collections.config_flags import config_flags
 import logging
 import os
+from dotenv import load_dotenv
 
 FLAGS = flags.FLAGS
 
@@ -29,6 +30,7 @@ def main(argv):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.devices
 
+    load_dotenv("api_key.env")
     FLAGS.config.wandb_key = os.environ.get("WANDB_API_KEY", FLAGS.config.wandb_key)
     if FLAGS.mode == "train":
         import train
