@@ -22,6 +22,8 @@ def get_loss_builder(config: ConfigDict):
             weight=lambda t: 1.0,
             solver=config.solver,
             noisy_config=config.noisy,
+            atol=config.eval.atol,
+            rtol=config.eval.rtol,
         )
     elif config.training.method == "flow-vp-matching":
         raise NotImplementedError
@@ -105,7 +107,9 @@ class FlowMatching:
         flow_sigma: Optional[float] = 0.1,
         weight: Optional[Callable[[float], float]] = lambda t: 1.0,
         solver: str = "tsit5",
-        noisy_config: Optional[ConfigDict] = None
+        noisy_config: Optional[ConfigDict] = None,
+        atol = 1e-4,
+        rtol = 0.0,
     ):
         self.t1 = t1
         self.t0 = t0
@@ -126,6 +130,8 @@ class FlowMatching:
             self.sigma_s_t = get_sigma_s_t(s, t, flow_sigma)
         else:
             self.sigma_s_t = 0.0
+        self.atol = atol
+        self.rtol = rtol
 
     @staticmethod
     def compute_flow(x1: jax.Array, x0: jax.Array) -> jax.Array:
@@ -220,7 +226,7 @@ class FlowMatching:
             else:
                 raise ValueError(f"Unknown solver {self.solver}")
             if self.dt0 == 0.0:
-                stepsize_controller = dfx.PIDController(rtol=0, atol=1e-4)
+                stepsize_controller = dfx.PIDController(rtol=self.rtol, atol=self.atol)
                 dt0 = None
             else:
                 stepsize_controller = dfx.ConstantStepSize()
