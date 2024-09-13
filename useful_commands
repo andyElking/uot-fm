@@ -3,3 +3,13 @@ python main.py --config=configs/celeba64/female/fm.py --config.task="generation"
 --config=configs/celeba64/female/fm.py --config.name="fm_celeba64_fem_gen"
 
 python main.py --config=configs/cifar10/fm.py --config.noisy.enable=False
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.rtol=1e-3  # DONE
+
+
+# TODO
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.rtol=1e-3 --config.eval.atol=1e-3 --config.noisy.tol_ratio=0.1
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.rtol=1e-3
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.rtol=1e-4 --config.eval.atol=1e-4

@@ -75,11 +75,25 @@ def evaluate(config: ml_collections.ConfigDict, workdir: str):
         vae_decode_fn=vae_decode_fn if config.model.use_vae else None,
     )
     wandb.login(key=config.wandb_key)
+
+    if config.eval.name == "":
+        eval = config.eval
+        noisy = config.noisy
+        eval_name = f"eval_a{eval.atol:.0e}_r{eval.rtol:.0e}"
+        if noisy.enable:
+            eval_name += f"_noisy_tr{noisy.tol_ratio}_s{noisy.s}"
+            if noisy.t != 1.0:
+                eval_name += f"_t{noisy.t}"
+
+        eval_name += f"_conf_{config.name}"
+    else:
+        eval_name = config.eval.name
+
     wandb.init(
         project="uot-fm",
         group=config.wandb_group if config.wandb_group != "" else None,
         entity=config.wandb_entity if config.wandb_entity != "" else None,
-        name=f"eval_{config.name}",
+        name=eval_name,
         config=config,
     )
     logging.info(f"Computing metrics...")

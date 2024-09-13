@@ -26,13 +26,15 @@ def get_base_config():
     eval.save_samples = True
     eval.num_save_samples = 7
     eval.labelwise = True
-    eval.checkpoint_step = 0
-    eval.atol = 1e-4
+    eval.checkpoint_step = 250000
+    eval.atol = 1e-3
     eval.rtol = 0.0
+    eval.name = ""
 
     config.noisy = noisy = ml_collections.ConfigDict()
     noisy.enable = True
     noisy.t = 1.0
-    noisy.s = 0.8
+    noisy.s = 0.9
+    noisy.tol_ratio = 0.5
 
     return config

@@ -225,18 +225,13 @@ class FlowMatching:
                 solver = dfx.Heun()
             else:
                 raise ValueError(f"Unknown solver {self.solver}")
-            if self.dt0 == 0.0:
-                stepsize_controller = dfx.PIDController(rtol=self.rtol, atol=self.atol)
-                dt0 = None
-            else:
-                stepsize_controller = dfx.ConstantStepSize()
-                dt0 = self.dt0
+            controller, dt0 = get_controller(self.atol, self.rtol, self.dt0, 1.0)
 
             noisy = self.noisy_config
             if noisy.enable:
                 s = noisy.s
                 t = noisy.t
-                # We integrate up to t
+                # We integrate up to t using the usual controller and dt0
                 sol_partial = dfx.diffeqsolve(
                     term,
                     solver,
@@ -244,7 +239,7 @@ class FlowMatching:
                     t,
                     dt0,
                     x0,
-                    stepsize_controller=stepsize_controller,
+                    stepsize_controller=controller,
                 )
                 x0 = sol_partial.ys[0]
                 steps = sol_partial.stats["num_steps"]
@@ -252,6 +247,10 @@ class FlowMatching:
                 # Then by adding noise we go backwards to time s
                 z = jr.normal(key, shape=x0.shape)
                 x0 = s/t * x0 + self.sigma_s_t * z
+
+                # For the rest of integration multiply the tols and dt0 by tol_ratio
+                controller, dt0 = get_controller(self.atol, self.rtol, self.dt0, noisy.tol_ratio)
+
             else:
                 s = self.t0
                 steps = 0
@@ -263,7 +262,7 @@ class FlowMatching:
                 self.t1,
                 dt0,
                 x0,
-                stepsize_controller=stepsize_controller,
+                stepsize_controller=controller,
             )
             return sol.ys[0], steps + sol.stats["num_steps"]
 
@@ -274,3 +273,13 @@ def get_sigma_s_t(s: float, t: float, sigma_1) -> float:
     s_by_t = s / t
     sigma2 = 1 - s_by_t ** 2 + 2 * (1 - sigma_1) * s * (s_by_t - 1)
     return math.sqrt(sigma2)
+
+
+def get_controller(atol, rtol, dt0, tol_ratio):
+    if dt0 == 0.0:
+        controller = dfx.PIDController(rtol=tol_ratio * rtol, atol=tol_ratio * atol)
+        dt0_noisy = None
+    else:
+        controller = dfx.ConstantStepSize()
+        dt0_noisy = tol_ratio * dt0
+    return controller, dt0_noisy
