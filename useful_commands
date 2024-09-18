@@ -4,12 +4,32 @@ python main.py --config=configs/celeba64/female/fm.py --config.task="generation"
 
 python main.py --config=configs/cifar10/fm.py --config.noisy.enable=False
 
-python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.rtol=1e-3  # DONE
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3  # DONE
 
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-3 --config.noisy.tol_ratio=0.1  # DONE
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=1e-3
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=1e-4 --config.eval.pid.atol=1e-4
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=1e-1 --config.eval.pid.atol=1e-2  # VERY BAD
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=1e-2 --config.eval.pid.atol=1e-2  # BAD
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2  # MEH
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.pid.rtol=0.0 --config.eval.pid.atol=1e-2  # MEH
 
 # TODO
-python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.rtol=1e-3 --config.eval.atol=1e-3 --config.noisy.tol_ratio=0.1
 
-python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.rtol=1e-3
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.1
 
-python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=False --config.eval.rtol=1e-4 --config.eval.atol=1e-4
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.5
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.1 --config.noisy.s=0.8
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.5 --config.noisy.s=0.8
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.1 --config.noisy.alpha=0.8
+
+python main.py --mode="eval" --config=configs/cifar10/fm.py --config.noisy.enable=True --config.eval.pid.rtol=1e-3 --config.eval.pid.atol=1e-2 --config.noisy.tol_ratio=0.5 --config.noisy.alpha=0.8

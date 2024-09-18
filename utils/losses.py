@@ -22,8 +22,7 @@ def get_loss_builder(config: ConfigDict):
             weight=lambda t: 1.0,
             solver=config.solver,
             noisy_config=config.noisy,
-            atol=config.eval.atol,
-            rtol=config.eval.rtol,
+            pid_config=config.eval.pid,
         )
     elif config.training.method == "flow-vp-matching":
         raise NotImplementedError
@@ -108,8 +107,7 @@ class FlowMatching:
         weight: Optional[Callable[[float], float]] = lambda t: 1.0,
         solver: str = "tsit5",
         noisy_config: Optional[ConfigDict] = None,
-        atol = 1e-4,
-        rtol = 0.0,
+        pid_config: Optional[ConfigDict] = None,
     ):
         self.t1 = t1
         self.t0 = t0
@@ -130,8 +128,7 @@ class FlowMatching:
             self.sigma_s_t = get_sigma_s_t(s, t, flow_sigma)
         else:
             self.sigma_s_t = 0.0
-        self.atol = atol
-        self.rtol = rtol
+        self.pid_config = pid_config
 
     @staticmethod
     def compute_flow(x1: jax.Array, x0: jax.Array) -> jax.Array:
@@ -225,7 +222,7 @@ class FlowMatching:
                 solver = dfx.Heun()
             else:
                 raise ValueError(f"Unknown solver {self.solver}")
-            controller, dt0 = get_controller(self.atol, self.rtol, self.dt0, 1.0)
+            controller, dt0 = get_controller(self.pid_config, self.dt0, 1.0)
 
             noisy = self.noisy_config
             if noisy.enable:
@@ -246,10 +243,10 @@ class FlowMatching:
 
                 # Then by adding noise we go backwards to time s
                 z = jr.normal(key, shape=x0.shape)
-                x0 = s/t * x0 + self.sigma_s_t * z
+                x0 = s/t * x0 + noisy.alpha * self.sigma_s_t * z
 
                 # For the rest of integration multiply the tols and dt0 by tol_ratio
-                controller, dt0 = get_controller(self.atol, self.rtol, self.dt0, noisy.tol_ratio)
+                controller, dt0 = get_controller(self.pid_config, self.dt0, noisy.tol_ratio)
 
             else:
                 s = self.t0
@@ -275,11 +272,17 @@ def get_sigma_s_t(s: float, t: float, sigma_1) -> float:
     return math.sqrt(sigma2)
 
 
-def get_controller(atol, rtol, dt0, tol_ratio):
-    if dt0 == 0.0:
-        controller = dfx.PIDController(rtol=tol_ratio * rtol, atol=tol_ratio * atol)
+def get_controller(pid_config, dt0, tol_ratio):
+    if dt0 == 0.0 and pid_config is not None:
+        controller = dfx.PIDController(
+            rtol=tol_ratio * pid_config.rtol,
+            atol=tol_ratio * pid_config.atol,
+            pcoeff=pid_config.pcoeff,
+            icoeff=pid_config.icoeff,
+        )
         dt0_noisy = None
     else:
+        assert dt0 > 0.0
         controller = dfx.ConstantStepSize()
         dt0_noisy = tol_ratio * dt0
     return controller, dt0_noisy

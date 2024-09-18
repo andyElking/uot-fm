@@ -79,13 +79,20 @@ def evaluate(config: ml_collections.ConfigDict, workdir: str):
     if config.eval.name == "":
         eval = config.eval
         noisy = config.noisy
-        eval_name = f"eval_a{eval.atol:.0e}_r{eval.rtol:.0e}"
+        eval_name = "eval"
+        if config.dt0 == 0.0 and eval.pid is not None:
+            eval_name += f"_PID_a{eval.pid.atol:.0e}_r{eval.pid.rtol:.0e}"
+            if eval.pid.pcoeff != 0.0 or eval.pid.icoeff != 1.0:
+                eval_name += f"_p{eval.pid.pcoeff}_i{eval.pid.icoeff}"
+
         if noisy.enable:
-            eval_name += f"_noisy_tr{noisy.tol_ratio}_s{noisy.s}"
+            eval_name += f"_NOISY_tr{noisy.tol_ratio}_s{noisy.s}"
             if noisy.t != 1.0:
                 eval_name += f"_t{noisy.t}"
+            if noisy.alpha != 1.0:
+                eval_name += f"_alpha{noisy.alpha}"
 
-        eval_name += f"_conf_{config.name}"
+        eval_name += f"_{config.name}"
     else:
         eval_name = config.eval.name
 
